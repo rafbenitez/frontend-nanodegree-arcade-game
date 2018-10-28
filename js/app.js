@@ -1,3 +1,4 @@
+// Game Constants
 const spriteWidth = 101;
 const spriteHeight = 83;
 const imageHeight = 171;

@@ -248,7 +248,7 @@ var Engine = (function(global) {
         ctx.font = '20px sans-serif';
         ctx.fillStyle = 'forestgreen';
         ctx.fillText(`CHOOSE YOUR CHARACTER`, 212, 246);
-
+        // Render All Available Characters
         characters.forEach(function(character, i) {
             if (i === characterIndex) {
                 ctx.drawImage(Resources.get(selectorSprite), i * (mediumSpriteWidth - 5) + 174, 250, mediumSpriteWidth, mediumSpriteHeight);
