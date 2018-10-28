@@ -24,8 +24,9 @@ var Engine = (function(global) {
         ctx = canvas.getContext('2d'),
         lastTime;
 
-    canvas.width = 505;
-    canvas.height = 606;
+    // canvas.width = 505;
+    canvas.width = 707;
+    canvas.height = 640;
     doc.body.appendChild(canvas);
 
     /* This function serves as the kickoff point for the game loop itself
@@ -79,7 +80,9 @@ var Engine = (function(global) {
      */
     function update(dt) {
         updateEntities(dt);
-        // checkCollisions();
+        if (gameState === 'play') {
+            checkCollisions();
+        }
     }
 
     /* This is called by the update function and loops through all of the
@@ -90,10 +93,26 @@ var Engine = (function(global) {
      * render methods.
      */
     function updateEntities(dt) {
-        allEnemies.forEach(function(enemy) {
-            enemy.update(dt);
-        });
+        if (gameState === 'play') {
+            allEnemies[level - 1].forEach(function(enemy) {
+                enemy.update(dt);
+            });
+        }
         player.update();
+    }
+
+    function checkCollisions() {
+        allEnemies[level - 1].forEach(function(enemy) {
+            if (enemy.row === player.row) { // Only need to check enemies that are on the same row as the player
+                if ((player.x + playerSpriteXPadding) < enemy.x + spriteWidth &&
+                    (player.x + spriteWidth - playerSpriteXPadding) > enemy.x &&
+                    player.y < enemy.y + spriteHeight &&
+                    player.y + spriteHeight > enemy.y) {
+                        gameState = 'playerDied';
+                        setTimeout(function(){loseLife();}, 300);
+                    }
+            }
+        });
     }
 
     /* This function initially draws the "game level", it will then call
@@ -106,18 +125,18 @@ var Engine = (function(global) {
         /* This array holds the relative URL to the image used
          * for that particular row of the game level.
          */
-        var rowImages = [
+        let rowImages = [
                 'images/water-block.png',   // Top row is water
+                'images/dirt-block.png',    // Row 1 of 1 of dirt
                 'images/stone-block.png',   // Row 1 of 3 of stone
                 'images/stone-block.png',   // Row 2 of 3 of stone
                 'images/stone-block.png',   // Row 3 of 3 of stone
-                'images/grass-block.png',   // Row 1 of 2 of grass
-                'images/grass-block.png'    // Row 2 of 2 of grass
+                'images/grass-block.png'    // Row 1 of 1 of grass
             ],
             numRows = 6,
-            numCols = 5,
+            numCols = 7,
             row, col;
-        
+
         // Before drawing, clear existing canvas
         ctx.clearRect(0,0,canvas.width,canvas.height)
 
@@ -134,11 +153,12 @@ var Engine = (function(global) {
                  * so that we get the benefits of caching these images, since
                  * we're using them over and over.
                  */
-                ctx.drawImage(Resources.get(rowImages[row]), col * 101, row * 83);
+                ctx.drawImage(Resources.get(rowImages[row]), col * spriteWidth, row * spriteHeight);
             }
         }
 
         renderEntities();
+        renderGameInfo();
     }
 
     /* This function is called by the render function and is called on each game
@@ -149,32 +169,155 @@ var Engine = (function(global) {
         /* Loop through all of the objects within the allEnemies array and call
          * the render function you have defined.
          */
-        allEnemies.forEach(function(enemy) {
+        allEnemies[level - 1].forEach(function(enemy) {
             enemy.render();
         });
 
         player.render();
     }
 
-    /* This function does nothing but it could have been a good place to
-     * handle game reset states - maybe a new game menu or a game over screen
-     * those sorts of things. It's only called once by the init() method.
-     */
-    function reset() {
-        // noop
+    function renderGameInfo() {
+        // Render Player's Score
+        ctx.font = '20px sans-serif';
+        ctx.fillStyle = 'forestgreen';
+        ctx.fillText(`SCORE: ${score.toString().padStart(6, '0')}`, 10, 40);
+
+        // Render Player's Current Level
+        ctx.font = '20px sans-serif';
+        ctx.fillStyle = 'forestgreen';
+        ctx.fillText(`LEVEL: ${level.toString().padStart(2, '0')}`, 605, 40);
+
+        // Render Player's Lives Remaining
+        for (let i = 0; i < player.lives; i++) {
+            ctx.drawImage(Resources.get(player.sprite), i * (smallSpriteWidth - 15), 560, smallSpriteWidth, smallSpriteHeight);
+        }
+
+        // Render Game Messages
+        switch (gameState) {
+            case 'levelComplete':
+                renderLevelComplete();
+                break;
+            case 'gameOver':
+                renderGameOver();
+                break;
+            case 'gameComplete':
+                renderGameComplete();
+                break;
+            case 'chooseCharacter':
+                renderChooseCharacter();
+                break;
+        }
     }
 
-    /* Go ahead and load all of the images we know we're going to need to
-     * draw our game level. Then set init as the callback method, so that when
-     * all of these images are properly loaded our game will start.
-     */
+    // Render Level Complete Message
+    function renderLevelComplete() {
+        renderMessageBox(204, 215, 300, 82);
+        ctx.font = '20px sans-serif';
+        ctx.fillStyle = 'forestgreen';
+        ctx.fillText(`LEVEL ${level.toString().padStart(2, '0')} COMPLETE!`, 245, 263);
+        if (appTimeout === -1) {
+            appTimeout = setTimeout(function(){levelUp();}, 1500);
+        }
+    }
+
+    // Render Game Over Message
+    function renderGameOver() {
+        renderMessageBox(204, 215, 300, 82);
+        ctx.font = '30px sans-serif';
+        ctx.fillStyle = 'forestgreen';
+        ctx.fillText(`GAME OVER!`, 255, 266);
+        if (appTimeout === -1) {
+            appTimeout = setTimeout(function(){reset();}, 1500);
+        }
+    }
+
+    // Render Game Complete Message
+    function renderGameComplete() {
+        renderMessageBox(204, 215, 300, 82);
+        ctx.font = '30px sans-serif';
+        ctx.fillStyle = 'forestgreen';
+        ctx.fillText(`YOU WON!`, 275, 266);
+        if (appTimeout === -1) {
+            appTimeout = setTimeout(function(){reset();}, 2000);
+        }
+    }
+
+    // Render Choose Character Dialog
+    function renderChooseCharacter() {
+        renderMessageBox(164, 215, 380, 182);
+        ctx.font = '20px sans-serif';
+        ctx.fillStyle = 'forestgreen';
+        ctx.fillText(`CHOOSE YOUR CHARACTER`, 212, 246);
+
+        characters.forEach(function(character, i) {
+            if (i === characterIndex) {
+                ctx.drawImage(Resources.get(selectorSprite), i * (mediumSpriteWidth - 5) + 174, 250, mediumSpriteWidth, mediumSpriteHeight);
+            }
+            ctx.drawImage(Resources.get(character), i * (mediumSpriteWidth - 5) + 174, 250, mediumSpriteWidth, mediumSpriteHeight);
+        });
+    }
+
+    // Render Message Box
+    function renderMessageBox(x, y, w, h) {
+        ctx.fillStyle = 'white';
+        ctx.fillRect(x, y, w, h);
+        ctx.strokeStyle = 'forestgreen';
+        ctx.lineWidth = 10;
+        ctx.strokeRect(x, y, w, h);
+    }
+
+    // Reset Game
+    function reset() {
+        appTimeout = -1;
+        player.lives = 5;
+        score = 0;
+        level = 1;
+        characterIndex = 0;
+        player.reset();
+        gameState = 'chooseCharacter';
+    }
+
+    // Advance Player to the next level
+    function levelUp() {
+        appTimeout = -1;
+        player.reset();
+        level += 1;
+        if (level > allEnemies.length) {
+            gameState = 'gameComplete';
+        } else {
+            gameState = 'play';
+        }
+    }
+
+    // Deduct one of Player's remaining lives
+    function loseLife() {
+        player.lives -= 1;
+        if (player.lives > 0) {
+            player.reset();
+            gameState = 'play';
+        } else {
+            gameState = 'gameOver';
+        }
+    }
+
+     // Load all images need to render the game including background, characters and enemies
     Resources.load([
+        'images/dirt-block.png',
         'images/stone-block.png',
         'images/water-block.png',
         'images/grass-block.png',
+        'images/enemy-beetle.png',
         'images/enemy-bug.png',
-        'images/char-boy.png'
+        'images/enemy-wasp.png',
+        'images/char-boy.png',
+        'images/char-cat-girl.png',
+        'images/char-horn-girl.png',
+        'images/char-pink-girl.png',
+        'images/char-princess-girl.png',
+        'images/Selector.png'
     ]);
+
+    // Set init as the callback method so that game starts after all images have been loaded
     Resources.onReady(init);
 
     /* Assign the canvas' context object to the global variable (the window
