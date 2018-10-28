@@ -57,3 +57,5 @@ This project is licensed under the [MIT License] - see the [LICENSE.md](LICENSE.
 * Forked from [udacity/frontend-nanodegree-arcade-game](https://github.com/udacity/frontend-nanodegree-arcade-game)
 * Adding collision detection to images drawn on canvas
  https://stackoverflow.com/questions/13916966/adding-collision-detection-to-images-drawn-on-canvas
+* Used additional images from the [Planet Cute Image library](https://docs.racket-lang.org/teachpack/2htdpPlanet_Cute_Images.html) by Daniel Cook
+* Used additional images from [openclipart.org](https://openclipart.org/)
